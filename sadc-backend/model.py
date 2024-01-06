@@ -4,8 +4,6 @@ import tensorflow as tf
 import os
 import math
 from sklearn.model_selection import train_test_split
-# from keras.layers import Input, Embedding, Flatten, Dot, Dense, Concatenate
-# from keras.models import Model
 import copy
 from sklearn.neighbors import NearestNeighbors
 from sklearn.neighbors import KNeighborsClassifier, NeighborhoodComponentsAnalysis
@@ -25,12 +23,18 @@ from sklearn.metrics import confusion_matrix
 
 class JobMatching:
     def __init__(self, k):
-        job_postings_path = './data/job_postings.csv'
-        companies_path = './data/company_details/companies.csv'
-        employee_path = './data/company_details/employee_counts.csv'
-        job_industries_path = './data/job_details/job_industries.csv'
-        industries_path = './data/maps/industries.csv'
-            
+        # job_postings_path = './data/job_postings.csv'
+        # companies_path = './data/company_details/companies.csv'
+        # employee_path = './data/company_details/employee_counts.csv'
+        # job_industries_path = './data/job_details/job_industries.csv'
+        # industries_path = './data/maps/industries.csv'
+
+        job_postings_path = './data/dataset.csv'
+        companies_path = './data/dataset.csv'
+        employee_path = './data/dataset.csv'
+        job_industries_path = './data/dataset.csv'
+        industries_path = './data/dataset.csv'
+
         self.job_postings_df = pd.read_csv(job_postings_path)
         self.companies_df = pd.read_csv(companies_path)
         self.employee_df = pd.read_csv(employee_path)
@@ -63,7 +67,7 @@ class JobMatching:
                 else:
                     companies_values.append(companies_dict[row['company_id']])
         self.job_postings_df.insert(loc=1, column='company', value=companies_values)
-        
+
         companies_employee_value = []
         companies_employee_dict = {row['company_id']: row['employee_count'] for idx, row in self.employee_df.iterrows()}
         for index, row in self.job_postings_df.iterrows():
@@ -75,7 +79,7 @@ class JobMatching:
                 else:
                     companies_employee_value.append(companies_employee_dict[row['company_id']])
         self.job_postings_df.insert(loc=1, column='employee_count', value=companies_employee_value)
-        
+
         industrie_value = []
         job_industries_dict = {row['job_id']: row['industry_id'] for idx, row in self.job_industries_df.iterrows()}
         industries_dict = {row['industry_id']: row['industry_name'] for idx, row in self.industries_df.iterrows()}
@@ -88,12 +92,13 @@ class JobMatching:
                 else:
                     if job_industries_dict[row['job_id']] not in industries_dict:
                         industrie_value.append(np.nan)
-                    else:   
+                    else:
                         industrie_value.append(industries_dict[job_industries_dict[row['job_id']]])
         self.job_postings_df.insert(loc=1, column='industries', value=industrie_value)
         self.job_postings_df = self.job_postings_df[['min_salary', 'remote_allowed', 'formatted_experience_level', 'location', 'employee_count', 'industries', 'company']]
+        self.job_postings_df.to_csv('./data/dataset.csv', index=False)
         return self.job_postings_df
-    
+
     def preprocessing_data(self, tp, show_uniques, jb_df):
         if (show_uniques == True):
             values = jb_df.nunique().tolist()
@@ -110,7 +115,7 @@ class JobMatching:
             plt.title("Barplot for 7 Values")
 
             plt.show()
-        
+
         companies_idx_dict = {title: idx for idx, title in enumerate(jb_df['company'].unique())}
         self.companies_reversed_dict = {value: key for key, value in companies_idx_dict.items()}
         jb_df['company'].replace(companies_idx_dict, inplace=True)
@@ -121,7 +126,7 @@ class JobMatching:
                 return val
         jb_df['company'] = jb_df['company'].apply(replaceCompanyValWithNan, 1)
 #         jb_df['company'] = self.label_encoder.fit_transform(jb_df['company'])
-        
+
         ep_dict = {ep: idx for idx, ep in enumerate(jb_df['formatted_experience_level'].unique())}
         self.ep_reversed_dict = {value: key for key, value in ep_dict.items()}
         jb_df['formatted_experience_level'].replace(ep_dict, inplace=True)
@@ -152,27 +157,29 @@ class JobMatching:
             else:
                 return 1
         jb_df['remote_allowed'] = jb_df['remote_allowed'].apply(replaceNaNRemote, 1)
-        
+
         jb_df = pd.DataFrame(self.imputer.fit_transform(jb_df), columns=jb_df.columns)
 
 #         def minmaxvalue(val):
 #             if not math.isnan(val):
 #                 return (val - self.minvalsal) / (self.maxvalsal - self.minvalsal)
 #         jb_df['min_salary'] = jb_df['min_salary'].apply(minmaxvalue, 1)
-        
+
 #         self.minvalemp = jb_df['employee_count'].min()
 #         self.maxvalemp = jb_df['employee_count'].max()
 #         def minmaxvalueen(val):
 #             if not math.isnan(val):
 #                 return (val - self.minvalemp) / (self.maxvalemp - self.minvalemp)
 #         jb_df['employee_count'] = jb_df['employee_count'].apply(minmaxvalueen, 1)
-        
+
         jb_df['remote_allowed'] = jb_df['remote_allowed'].astype(int)
         jb_df['formatted_experience_level'] = jb_df['formatted_experience_level'].astype(int)
         jb_df['location'] = jb_df['location'].astype(int)
         jb_df['industries'] = jb_df['industries'].astype(int)
         jb_df['company'] = jb_df['company'].astype(int)
-        
+
+        jb_df.to_csv('./data/dataset_preprocessed.csv', index=False)
+
         scaler = StandardScaler()
 
 
@@ -183,7 +190,7 @@ class JobMatching:
         else:
             X = scaler.fit_transform(jb_df[['min_salary', 'remote_allowed', 'formatted_experience_level', 'location', 'employee_count', 'company']])
             return X
-        
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         return X_train, X_test, y_train, y_test
 

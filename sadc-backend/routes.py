@@ -5,11 +5,19 @@ from model import JobMatching
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
 jobMatching = JobMatching(3)
-initial_dataset = jobMatching.create_dataset()
-old_queue_X, old_queue_y = jobMatching.preprocessing_data('init_dataset', False, initial_dataset)
+# initial_dataset = jobMatching.create_dataset()
+# old_queue_X, old_queue_y = jobMatching.preprocessing_data('init_dataset', False, initial_dataset)
+
+initial_dataset = pd.read_csv('./data/dataset.csv')
+jb_df = pd.read_csv('./data/dataset_preprocessed.csv')
+scaler = StandardScaler()
+old_queue_X = scaler.fit_transform(
+    jb_df[['min_salary', 'remote_allowed', 'formatted_experience_level', 'location', 'employee_count', 'company']])
+old_queue_y = jb_df['industries']
 
 new_queue_X = np.empty((0, 6))
 new_queue_y = pd.Series()
@@ -33,6 +41,7 @@ def trainModel():
     new_queue_X = np.empty((0, 6))
     new_queue_y = pd.Series()
     return f'Successfully tarained with accuracy: {accuracy}'
+
 
 @app.route('/sendData', methods=['POST'])
 def sendData():
