@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
 
 const AppContainer = styled.div`
   font-family: Arial, sans-serif;
@@ -74,9 +75,14 @@ const App = () => {
     });
   };
 
-  const handleSubmit = () => {
-    // Handle form submission logic here
-    // For now, let's just set submitted to true
+  const handleSubmit = async () => {
+    try {
+      const response = await axios.post('http://127.0.0.1:5000/sendData', formData);
+      console.log('Server Response:', response.data);
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting data:', error);
+    }
     setSubmitted(true);
   };
 
