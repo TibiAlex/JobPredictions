@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sklearn.metrics import accuracy_score
 import json
@@ -52,4 +52,4 @@ def sendData():
 
     indx = old_queue_y[old_queue_y == pred[0]].index[0]
 
-    return initial_dataset.loc[initial_dataset.index[indx], 'industries']
+    return jsonify(initial_dataset.loc[initial_dataset.index[indx], 'industries'])
