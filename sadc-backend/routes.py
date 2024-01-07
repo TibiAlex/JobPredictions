@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 from sklearn.metrics import accuracy_score
 import json
 from model import JobMatching
@@ -8,16 +9,11 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
+CORS(app)
 jobMatching = JobMatching(3)
 # initial_dataset = jobMatching.create_dataset()
-# old_queue_X, old_queue_y = jobMatching.preprocessing_data('init_dataset', False, initial_dataset)
-
 initial_dataset = pd.read_csv('./data/dataset.csv')
-jb_df = pd.read_csv('./data/dataset_preprocessed.csv')
-scaler = StandardScaler()
-old_queue_X = scaler.fit_transform(
-    jb_df[['min_salary', 'remote_allowed', 'formatted_experience_level', 'location', 'employee_count', 'company']])
-old_queue_y = jb_df['industries']
+old_queue_X, old_queue_y = jobMatching.preprocessing_data('init_dataset', False, initial_dataset)
 
 new_queue_X = np.empty((0, 6))
 new_queue_y = pd.Series()
@@ -45,7 +41,15 @@ def trainModel():
 
 @app.route('/sendData', methods=['POST'])
 def sendData():
-    data = json.loads(request.form)
-    input_df = pd.json_normalize(data['results'])
-    pred = jobMatching.predictForOnlyOneInput(input_df, new_queue_X, new_queue_y)
-    return pred
+    global new_queue_X
+    global new_queue_y
+
+    data = json.loads(request.data)
+    input_df = pd.json_normalize(data)
+    [newX, pred] = jobMatching.predictForOnlyOneInput(input_df)
+    new_queue_X = np.concatenate([new_queue_X, newX])
+    new_queue_y = pd.concat([new_queue_y, pd.Series(pred)])
+
+    indx = old_queue_y[old_queue_y == pred[0]].index[0]
+
+    return initial_dataset.loc[initial_dataset.index[indx], 'industries']

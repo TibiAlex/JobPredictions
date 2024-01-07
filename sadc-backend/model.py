@@ -116,22 +116,22 @@ class JobMatching:
 
             plt.show()
 
-        companies_idx_dict = {title: idx for idx, title in enumerate(jb_df['company'].unique())}
-        self.companies_reversed_dict = {value: key for key, value in companies_idx_dict.items()}
-        jb_df['company'].replace(companies_idx_dict, inplace=True)
+        self.companies_idx_dict = {title: idx for idx, title in enumerate(jb_df['company'].unique())}
+        self.companies_reversed_dict = {value: key for key, value in self.companies_idx_dict.items()}
+        jb_df['company'].replace(self.companies_idx_dict, inplace=True)
         def replaceCompanyValWithNan(val):
-            if val == companies_idx_dict[np.nan]:
+            if np.nan in self.companies_idx_dict and val == self.companies_idx_dict[np.nan]:
                 return np.nan
             else:
                 return val
         jb_df['company'] = jb_df['company'].apply(replaceCompanyValWithNan, 1)
 #         jb_df['company'] = self.label_encoder.fit_transform(jb_df['company'])
 
-        ep_dict = {ep: idx for idx, ep in enumerate(jb_df['formatted_experience_level'].unique())}
-        self.ep_reversed_dict = {value: key for key, value in ep_dict.items()}
-        jb_df['formatted_experience_level'].replace(ep_dict, inplace=True)
+        self.ep_dict = {ep: idx for idx, ep in enumerate(jb_df['formatted_experience_level'].unique())}
+        self.ep_reversed_dict = {value: key for key, value in self.ep_dict.items()}
+        jb_df['formatted_experience_level'].replace(self.ep_dict, inplace=True)
         def replaceValWithNan(val):
-            if val == ep_dict[np.nan]:
+            if np.nan in self.ep_dict and val == self.ep_dict[np.nan]:
                 return np.nan
             else:
                 return val
@@ -139,20 +139,28 @@ class JobMatching:
 #         jb_df['formatted_experience_level'] = self.label_encoder.fit_transform(jb_df['formatted_experience_level'])
 
         if (tp == 'init_dataset'):
-            industry_dict = {ind: idx for idx, ind in enumerate(jb_df['industries'].unique())}
-            self.industry_reversed_dict = {value: key for key, value in industry_dict.items()}
-            jb_df['industries'].replace(industry_dict, inplace=True)
+            self.industry_dict = {ind: idx for idx, ind in enumerate(jb_df['industries'].unique())}
+            self.industry_reversed_dict = {value: key for key, value in self.industry_dict.items()}
+            jb_df['industries'].replace(self.industry_dict, inplace=True)
             def replaceIndValWithNan(val):
-                if val == industry_dict[np.nan]:
+                if np.nan in self.industry_dict and val == self.industry_dict[np.nan]:
                     return np.nan
                 else:
                     return val
             jb_df['industries'] = jb_df['industries'].apply(replaceIndValWithNan, 1)
 
-        jb_df['location'] = self.label_encoder.fit_transform(jb_df['location'])
+        self.location_dict = {ep: idx for idx, ep in enumerate(jb_df['location'].unique())}
+        self.location_reversed_dict = {value: key for key, value in self.location_dict.items()}
+        jb_df['location'].replace(self.location_dict, inplace=True)
+        def replaceValWithNanLoc(val):
+            if np.nan in self.location_dict and val == self.location_dict[np.nan]:
+                return np.nan
+            else:
+                return val
+        jb_df['location'] = jb_df['location'].apply(replaceValWithNanLoc, 1)
 
         def replaceNaNRemote(val):
-            if math.isnan(val):
+            if val == False or math.isnan(val):
                 return 0
             else:
                 return 1
@@ -175,24 +183,21 @@ class JobMatching:
         jb_df['remote_allowed'] = jb_df['remote_allowed'].astype(int)
         jb_df['formatted_experience_level'] = jb_df['formatted_experience_level'].astype(int)
         jb_df['location'] = jb_df['location'].astype(int)
-        jb_df['industries'] = jb_df['industries'].astype(int)
+        if (tp == 'init_dataset'):
+            jb_df['industries'] = jb_df['industries'].astype(int)
         jb_df['company'] = jb_df['company'].astype(int)
 
-        jb_df.to_csv('./data/dataset_preprocessed.csv', index=False)
-
         scaler = StandardScaler()
-
 
         if (tp == 'init_dataset'):
             X = scaler.fit_transform(jb_df[['min_salary', 'remote_allowed', 'formatted_experience_level', 'location', 'employee_count', 'company']])
             y = jb_df['industries']
             return X, y
         else:
+            print("JBBBBB_DFFFFFFFf")
+            print(jb_df)
             X = scaler.fit_transform(jb_df[['min_salary', 'remote_allowed', 'formatted_experience_level', 'location', 'employee_count', 'company']])
             return X
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        return X_train, X_test, y_train, y_test
 
     def trainKNN(self, X_train, y_train):
         self.knn_classifier.fit(X_train, y_train)
@@ -201,14 +206,57 @@ class JobMatching:
         y_pred = self.knn_classifier.predict(X_test)
         return y_pred
     
-    def predictForOnlyOneInput(self, input_dataframe, new_queue_X, new_queue_y):
-        scaled_df_X = self.preprocessing_data('raw', False, input_dataframe)
+    def predictForOnlyOneInput(self, input_dataframe):
+        # scaled_df_X = self.preprocessing_data('raw', False, input_dataframe)
+        print(input_dataframe.iloc[0])
+        rm_all = 0
+        if (input_dataframe.iloc[0]['remote_allowed'] is True):
+            rm_all = 1
+        
+        fel = 0
+        if (input_dataframe.iloc[0]['formatted_experience_level'] in self.ep_dict):
+            fel = self.ep_dict.get(input_dataframe.iloc[0]['formatted_experience_level'])
+        else:
+            old_size = len(self.ep_dict)
+            fel = old_size
+            self.ep_dict[input_dataframe.iloc[0]['formatted_experience_level']] = old_size
+            self.ep_reversed_dict[old_size] = input_dataframe.iloc[0]['formatted_experience_level']
+
+        loc = 0
+        if (input_dataframe.iloc[0]['location'] in self.location_dict):
+            loc = self.location_dict.get(input_dataframe.iloc[0]['location'])
+        else:
+            old_size = len(self.location_dict)
+            loc = old_size
+            self.location_dict[input_dataframe.iloc[0]['location']] = old_size
+            self.location_reversed_dict[old_size] = input_dataframe.iloc[0]['location']
+
+        cmp = 0
+        if (input_dataframe.iloc[0]['company'] in self.companies_idx_dict):
+            cmp = self.companies_idx_dict.get(input_dataframe.iloc[0]['company'])
+        else:
+            old_size = len(self.companies_idx_dict)
+            cmp = old_size
+            self.companies_idx_dict[input_dataframe.iloc[0]['company']] = old_size
+            self.companies_reversed_dict[old_size] = input_dataframe.iloc[0]['company']
+
+        scaler = StandardScaler()
+        new_X = pd.DataFrame([{'min_salary': input_dataframe.iloc[0]['min_salary'],
+                                     'remote_allowed': rm_all,
+                                     'formatted_experience_level': fel,
+                                     'location': loc,
+                                     'employee_count': input_dataframe.iloc[0]['employee_count'],
+                                     'company': cmp}])
+        
+        new_X['remote_allowed'] = new_X['remote_allowed'].astype(int)
+        new_X['formatted_experience_level'] = new_X['formatted_experience_level'].astype(int)
+        new_X['location'] = new_X['location'].astype(int)
+        new_X['company'] = new_X['company'].astype(int)
+
+        scaled_df_X = scaler.fit_transform(new_X)
+
         pred = self.knn_classifier.predict(scaled_df_X)
-
-        new_queue_X.append(scaled_df_X)
-        new_queue_y.append(pred)
-
-        return pred
+        return scaled_df_X, pred
 
     def getScore(self):
         X, y = self.preprocessing_data("raw", False)
