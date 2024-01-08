@@ -41,20 +41,6 @@ const SubmitButton = styled.button`
   cursor: pointer;
 `;
 
-const ResultsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-`;
-
-const ResultBlock = styled.div`
-  background-color: #3498db;
-  color: #fff;
-  padding: 10px;
-  margin: 10px;
-  border-radius: 5px;
-`;
-
 const initialFormData = {
   min_salary: 1000,
   remote_allowed: true,
@@ -67,6 +53,7 @@ const initialFormData = {
 const App = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [submitted, setSubmitted] = useState(false);
+  const [recommendation, setRecommendation] = useState("");
 
   const handleInputChange = (field, value) => {
     setFormData({
@@ -80,6 +67,7 @@ const App = () => {
       const response = await axios.post('http://127.0.0.1:5000/sendData', formData);
       console.log('Server Response:', response.data);
       setSubmitted(true);
+      setRecommendation(response.data);
     } catch (error) {
       console.error('Error submitting data:', error);
     }
@@ -88,7 +76,6 @@ const App = () => {
 
   return (
     <AppContainer>
-      {!submitted ? (
         <FormContainer>
           <h2>Job Information Form</h2>
           <p>Fill in the details:</p>
@@ -148,13 +135,13 @@ const App = () => {
             </SubmitButton>
           </form>
         </FormContainer>
-      ) : (
-        <ResultsContainer>
-          {[...Array(20)].map((_, index) => (
-            <ResultBlock key={index}>Result {index + 1}</ResultBlock>
-          ))}
-        </ResultsContainer>
-      )}
+        {submitted && (
+        <FormContainer>
+          <div>
+            <h1 style={{ color: 'white' }}>Your industry recommendation is: {recommendation}</h1>
+          </div>
+        </FormContainer>
+        )}
     </AppContainer>
   );
 };

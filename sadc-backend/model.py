@@ -100,6 +100,7 @@ class JobMatching:
         return self.job_postings_df
 
     def preprocessing_data(self, tp, show_uniques, jb_df):
+        # jb_df = jb_df.loc[1:1000]
         if (show_uniques == True):
             values = jb_df.nunique().tolist()
             column_names = jb_df.columns.tolist()
